@@ -1,0 +1,198 @@
+{
+  "name": "Emi Automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        48
+      ],
+      "id": "20901f65-5be5-4e8e-bad3-83cf8e690a85",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1KE7emoTc-_oaHqFiHzwB54-NzDAZiwZDEwVxJis9zus",
+          "mode": "list",
+          "cachedResultName": "Students",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1KE7emoTc-_oaHqFiHzwB54-NzDAZiwZDEwVxJis9zus/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1KE7emoTc-_oaHqFiHzwB54-NzDAZiwZDEwVxJis9zus/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -144,
+        48
+      ],
+      "id": "99ebbe87-2bba-4ec6-a180-de7e9d862b51",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "OldxSOBBLlKBJ7aO",
+          "name": "Pallavi"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$json.email}}",
+        "subject": "=EMI Payment Reminder - {{$json.student_id}}",
+        "message": "=Hello {{$json.name}},<br><br>  This is a reminder that your EMI installment is due today.<br><br>  <b>Student ID:</b> {{$json.student_id}}<br> <b>Amount Due:</b> ₹{{$json.due_amount}}<br> <b>Due Date:</b> {{$json.due_date}}<br><br>  Please complete your payment at the earliest.<br><br>  Regards,<br> Certisured Team",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        544,
+        -64
+      ],
+      "id": "054798ed-6a72-4f26-ac90-61fd734aa981",
+      "name": "Send a message",
+      "webhookId": "e28a1352-6abe-44b6-baa6-502b9985f1a2",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "50WvOUROwiK1rOiS",
+          "name": "Prajwal"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7933a6e6-a1c4-4204-8cb2-357808144bec",
+              "leftValue": "={{$items().length}}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "ignoreCase": false
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        320,
+        64
+      ],
+      "id": "f94c0e0f-797a-4544-872a-2fab20cf2e3b",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "const today = new Date().toLocaleDateString(\"en-GB\").trim();\n\nconst results = [];\n\nfor (const item of $input.all()) {\n\n  const feeMode = (item.json.fee_mode || \"\").toLowerCase();\n\n  // Skip full payment students\n  if (feeMode.includes(\"full\")) continue;\n\n  const installmentText = item.json.installment_details;\n\n  if (!installmentText) continue;\n\n  const lines = installmentText.split(\"\\n\");\n\n  for (const line of lines) {\n\n    const cleanedLine = line.replace(/\"/g,\"\").trim();\n\n    const match = cleanedLine.match(/(\\d{2}\\/\\d{2}\\/\\d{4})\\s*:\\s*([\\d.]+)/);\n\n    if (!match) continue;\n\n    const dueDate = match[1].trim();\n    const amount = match[2].trim();\n\n    if (dueDate === today) {\n\n      results.push({\n  json: {\n    student_id: item.json.student_id,\n    name: item.json.name,\n    email: item.json.email,\n    due_amount: Number(amount),\n    due_date: dueDate,\n    total_months: Number(item.json.total_months)\n  }\n});\n\n    }\n\n  }\n\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        112,
+        64
+      ],
+      "id": "6ce05c2a-3d50-494f-8940-53b972591ce8",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -352,
+        -128
+      ],
+      "id": "f6fb1528-3c64-410e-9787-c97c31ad0873",
+      "name": "Schedule Trigger"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "86c27b36-cc7a-4500-87eb-ed79e1f869b0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8a6f312b0878c91513aa27daa00446b105511b99e283f5f19d2eb69e655280d7"
+  },
+  "id": "jqcFnnhF8gTVb2Fl",
+  "tags": []
+}
